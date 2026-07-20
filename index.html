@@ -235,6 +235,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .knowledge-card .kc-inner .kc-sub{font-size:12px;font-weight:700;color:#1E293B;margin:10px 0 4px}
 .knowledge-card .kc-inner .kc-highlight{color:#C0604C;font-weight:700}
 .knowledge-card .kc-inner .kc-note{color:#64748B;font-size:10px;margin-top:4px}
+
+.food-panel{background:#fff;border-radius:6px;border:1px solid #E0E0E0;padding:8px;margin:8px 0}
+.fp-label{font-size:11px;color:#7F8C8D;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.fp-label .fp-tag{font-weight:600;color:#1E293B}
+.fp-row{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end}
+.fp-row input{border:none;border-bottom:1px solid #E2E8F0;font-size:13px;color:#1E293B;background:transparent;padding:4px 2px;outline:none}
+.fp-row input:focus{border-bottom-color:#3498DB}
+.fp-row input.fp-name{flex:1 1 100px;min-width:80px}
+.fp-row input.fp-num{width:52px;text-align:right}
+.fp-row input.fp-time{width:64px}
+.fp-btn{background:#3498DB;color:#fff;border:none;border-radius:4px;padding:5px 14px;font-size:16px;line-height:1;cursor:pointer;flex-shrink:0}
+.fp-btn:hover{background:#2980B9}
+.photo-area{margin-top:6px}
+.photo-area .pa-label{font-size:11px;color:#7F8C8D;margin-bottom:4px}
+.photo-thumbs{display:flex;flex-wrap:wrap;gap:6px}
+.photo-thumb{position:relative;width:80px;height:80px;border-radius:4px;overflow:hidden;cursor:pointer;border:1px solid #E2E8F0}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-del{position:absolute;top:0;right:0;width:18px;height:18px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:0 4px 0 4px;font-size:11px;line-height:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cam-btn{display:inline-flex;align-items:center;gap:4px;background:#F0F4F8;border:1px dashed #CBD5E1;border-radius:4px;padding:12px;cursor:pointer;font-size:11px;color:#64748B;width:80px;height:80px;justify-content:center;flex-direction:column}
+.cam-btn:hover{background:#E2E8F0}
+.photo-full-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.photo-full-overlay img{max-width:90vw;max-height:90vh;border-radius:8px}
 </style>
 <!-- Firebase Config -->
 <script>const firebaseConfig={apiKey:"AIzaSy4AyhLgjARWcEAjYw2T2VE9npGlUSOjc47o",authDomain:"diet-tracker-d5a00.firebaseapp.com",projectId:"diet-tracker-d5a00",storageBucket:"diet-tracker-d5a00.firebasestorage.app",messagingSenderId:"146584718242",appId:"1:146584718242:web:eec87c3d2d4f8e25b5d0f8"};const DB_URL="https://diet-tracker-d5a00-default-rtdb.asia-southeast1.firebasedatabase.app";</script>
@@ -1531,6 +1553,31 @@ function rdd(){
   bodyRowHTML+='</div>';
   bodyRowHTML+='</div>';
   document.getElementById("wso").innerHTML=bodyRowHTML;
+  // 食物录入面板
+  var now=new Date();var defaultTime=("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
+  var fpHTML='<div class="food-panel">';
+  fpHTML+='<div class="fp-label"><span class="fp-tag">快捷录入</span>添加后自动存入当天记录</div>';
+  fpHTML+='<div class="fp-row">';
+  fpHTML+='<input type="text" id="fp-name" class="fp-name" placeholder="食物">';
+  fpHTML+='<input type="number" id="fp-kcal" class="fp-num" placeholder="kcal" step="1" min="0">';
+  fpHTML+='<input type="number" id="fp-pr" class="fp-num" placeholder="g" step="0.1" min="0">';
+  fpHTML+='<input type="number" id="fp-cb" class="fp-num" placeholder="g" step="0.1" min="0">';
+  fpHTML+='<input type="number" id="fp-ft" class="fp-num" placeholder="g" step="0.1" min="0">';
+  fpHTML+='<input type="time" id="fp-tm" class="fp-time" value="'+defaultTime+'">';
+  fpHTML+='<button class="fp-btn" onclick="addMeal()">+</button>';
+  fpHTML+='</div>';
+  // 餐食照片
+  var mp=getMealPhotos();var todayPhotos=mp[cd]||[];
+  fpHTML+='<div class="photo-area"><div class="pa-label">餐食照片（'+todayPhotos.length+'/5）</div><div class="photo-thumbs" id="photo-thumbs">';
+  todayPhotos.forEach(function(src,i){
+    fpHTML+='<div class="photo-thumb" onclick="viewPhoto(''+i+'')"><img src="'+src+'" loading="lazy"><button class="photo-del" onclick="event.stopPropagation();delPhoto('+i+')">×</button></div>';
+  });
+  if(todayPhotos.length<5){
+    fpHTML+='<label class="cam-btn"><span style="font-size:20px">📷</span>拍照<input type="file" accept="image/*" capture="environment" style="display:none" onchange="capturePhoto(event)"></label>';
+  }
+  fpHTML+='</div></div>';
+  fpHTML+='</div>';
+  document.getElementById("body-input-area").innerHTML=fpHTML;
   // 身高显示
   var ht=parseInt(localStorage.getItem('userHeight'))||191;
   document.getElementById("ht-banner").textContent='身高: '+ht+'cm';
@@ -1566,6 +1613,66 @@ function rdd(){
   ins+='<div class="ib"><div class="il">目标追踪</div><div class="ibd">'+go+'</div></div>';
   document.getElementById("ins").innerHTML=ins;
   if(window.__fb)window.__fb.get(window.__fb.ref(window.__fb.db,'ddb2')).then(function(snap){if(snap.exists()){var remote=snap.val();for(var k in remote){if(remote.hasOwnProperty(k))db[k]=remote[k];}localStorage.setItem('ddb2',JSON.stringify(db));}});
+}
+
+
+// ===== 快捷录入：添加餐食 =====
+function addMeal(){
+  var name=document.getElementById("fp-name").value.trim();
+  if(!name){alert("请输入食物名称");return;}
+  var kcal=parseFloat(document.getElementById("fp-kcal").value)||0;
+  var pr=parseFloat(document.getElementById("fp-pr").value)||0;
+  var cb=parseFloat(document.getElementById("fp-cb").value)||0;
+  var ft=parseFloat(document.getElementById("fp-ft").value)||0;
+  var tm=document.getElementById("fp-tm").value||"12:00";
+  var db=rd();
+  if(!db[cd]){db[cd]={workout:"休息",meals:[]};}
+  db[cd].meals.push({n:name,g:0,q:"",tm:tm,kk:kcal,pr:pr,cb:cb,ft:ft});
+  wd(db);
+  rdd();
+}
+
+// ===== 餐食照片管理 =====
+function getMealPhotos(){
+  try{return JSON.parse(localStorage.getItem("mealPhotos"))||{};}catch(e){return {};}
+}
+function setMealPhotos(mp){localStorage.setItem("mealPhotos",JSON.stringify(mp));}
+
+function capturePhoto(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var mp=getMealPhotos();
+    if(!mp[cd])mp[cd]=[];
+    if(mp[cd].length>=5){alert("每天最多5张照片，请先删除旧的");e.target.value="";return;}
+    // 压缩缩略图 max 300px
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement("canvas");
+      var maxW=300;var scale=Math.min(1,maxW/img.width);
+      canvas.width=img.width*scale;canvas.height=img.height*scale;
+      var ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      mp[cd].push(canvas.toDataURL("image/jpeg",0.7));
+      setMealPhotos(mp);
+      e.target.value="";
+      rdd();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function viewPhoto(idx){
+  var mp=getMealPhotos();var photos=mp[cd]||[];
+  var overlay=document.createElement("div");overlay.className="photo-full-overlay";
+  overlay.innerHTML='<img src="'+photos[idx]+'">';
+  overlay.onclick=function(){document.body.removeChild(overlay);};
+  document.body.appendChild(overlay);
+}
+
+function delPhoto(idx){
+  var mp=getMealPhotos();
+  if(mp[cd]){mp[cd].splice(idx,1);setMealPhotos(mp);rdd();}
 }
 
 // ===== 身高设置 =====
