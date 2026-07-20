@@ -247,6 +247,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;backg
 .fp-row input.fp-time{width:64px}
 .fp-btn{background:#3498DB;color:#fff;border:none;border-radius:4px;padding:5px 14px;font-size:16px;line-height:1;cursor:pointer;flex-shrink:0}
 .fp-btn:hover{background:#2980B9}
+
+/* NL 食物录入 */
+.nl-toggle{float:right;border:1px solid #DEE2E6;background:#F8FAFC;color:#64748B;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px}
+.nl-toggle:hover{background:#E2E8F0;color:#2C3E50}
+.nl-area{margin-top:8px}
+.nl-textarea{width:100%;height:100px;border:1px solid #DEE2E6;border-radius:4px;padding:8px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;line-height:1.6}
+.nl-textarea:focus{outline:none;border-color:#3498DB}
+.nl-preview-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center}
+.nl-preview{background:#fff;border-radius:8px;padding:16px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)}
+.nl-preview-title{font-size:13px;font-weight:700;color:#2C3E50;margin-bottom:12px}
+
+/* 照片识别按钮 */
+.photo-recog-btn{position:absolute;top:2px;right:20px;width:18px;height:18px;background:rgba(255,255,255,0.9);border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.15);z-index:2}
+.photo-recog-btn:hover{background:#3498DB;color:#fff}
 .photo-area{margin-top:6px}
 .photo-area .pa-label{font-size:11px;color:#7F8C8D;margin-bottom:4px}
 .photo-thumbs{display:flex;flex-wrap:wrap;gap:6px}
@@ -1556,21 +1570,26 @@ function rdd(){
   // 食物录入面板
   var now=new Date();var defaultTime=("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
   var fpHTML='<div class="food-panel">';
-  fpHTML+='<div class="fp-label"><span class="fp-tag">快捷录入</span>添加后自动存入当天记录</div>';
-  fpHTML+='<div class="fp-row">';
-  fpHTML+='<input type="text" id="fp-name" class="fp-name" placeholder="食物">';
-  fpHTML+='<input type="number" id="fp-kcal" class="fp-num" placeholder="kcal" step="1" min="0">';
-  fpHTML+='<input type="number" id="fp-pr" class="fp-num" placeholder="g" step="0.1" min="0">';
-  fpHTML+='<input type="number" id="fp-cb" class="fp-num" placeholder="g" step="0.1" min="0">';
-  fpHTML+='<input type="number" id="fp-ft" class="fp-num" placeholder="g" step="0.1" min="0">';
-  fpHTML+='<input type="time" id="fp-tm" class="fp-time" value="'+defaultTime+'">';
-  fpHTML+='<button class="fp-btn" onclick="addMeal()">+</button>';
-  fpHTML+='</div>';
+  fpHTML+='<div class="fp-label"><span class="fp-tag">快捷录入</span>添加后自动存入当天记录 <button id="nl-toggle-btn" class="nl-toggle" onclick="toggleNLMode()">语音/NL</button></div>';
+  if(window.__nlMode){
+    fpHTML+='<div class="nl-area"><textarea id="nl-textarea" class="nl-textarea" placeholder="早餐：袁记玉米鲜肉饺 11个，蛋白粉 1勺\n午餐：鸡胸肉 200g，米饭 150g\n\n食物名 数量单位"></textarea>';
+    fpHTML+='<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px"><button class="fp-btn" onclick="parseNL()" style="background:#3498DB;width:auto;padding:6px 16px">解析</button></div></div>';
+  }else{
+    fpHTML+='<div class="fp-row">';
+    fpHTML+='<input type="text" id="fp-name" class="fp-name" placeholder="食物">';
+    fpHTML+='<input type="number" id="fp-kcal" class="fp-num" placeholder="kcal" step="1" min="0">';
+    fpHTML+='<input type="number" id="fp-pr" class="fp-num" placeholder="g" step="0.1" min="0">';
+    fpHTML+='<input type="number" id="fp-cb" class="fp-num" placeholder="g" step="0.1" min="0">';
+    fpHTML+='<input type="number" id="fp-ft" class="fp-num" placeholder="g" step="0.1" min="0">';
+    fpHTML+='<input type="time" id="fp-tm" class="fp-time" value="'+defaultTime+'">';
+    fpHTML+='<button class="fp-btn" onclick="addMeal()">+</button>';
+    fpHTML+='</div>';
+  }
   // 餐食照片
   var mp=getMealPhotos();var todayPhotos=mp[cd]||[];
   fpHTML+='<div class="photo-area"><div class="pa-label">餐食照片（'+todayPhotos.length+'/5）</div><div class="photo-thumbs" id="photo-thumbs">';
   todayPhotos.forEach(function(src,i){
-    fpHTML+='<div class="photo-thumb" onclick="viewPhoto(''+i+'')"><img src="'+src+'" loading="lazy"><button class="photo-del" onclick="event.stopPropagation();delPhoto('+i+')">×</button></div>';
+    fpHTML+='<div class="photo-thumb" data-pending="true" onclick="viewPhoto(''+i+'')"><img src="'+src+'" loading="lazy"><button class="photo-del" onclick="event.stopPropagation();delPhoto('+i+')">×</button><div class="photo-recog-btn" onclick="event.stopPropagation();markPending('+i+')" title="标记待识别">🔍</div></div>';
   });
   if(todayPhotos.length<5){
     fpHTML+='<label class="cam-btn"><span style="font-size:20px">📷</span>拍照<input type="file" accept="image/*" capture="environment" style="display:none" onchange="capturePhoto(event)"></label>';
@@ -1612,9 +1631,30 @@ function rdd(){
   ins+='<div class="ib"><div class="il">健身要点 · 练'+wo+'</div>'+fh+'</div>';
   ins+='<div class="ib"><div class="il">目标追踪</div><div class="ibd">'+go+'</div></div>';
   document.getElementById("ins").innerHTML=ins;
-  if(window.__fb)window.__fb.get(window.__fb.ref(window.__fb.db,'ddb2')).then(function(snap){if(snap.exists()){var remote=snap.val();for(var k in remote){if(remote.hasOwnProperty(k))db[k]=remote[k];}localStorage.setItem('ddb2',JSON.stringify(db));}});
+  if(window.__fb)window.__fb.get(window.__fb.ref(window.__fb.db,'ddb2')).then(function(snap){if(snap.exists()){var remote=snap.val();if(remote&&Object.keys(remote).length>0){for(var k in remote){if(remote.hasOwnProperty(k))db[k]=remote[k];}localStorage.setItem('ddb2',JSON.stringify(db));}}window.__dataReady=true;});
 }
 
+
+// ===== 餐食照片 AI 识别入口 =====
+function markPending(idx){
+  var mp=getMealPhotos();var photos=mp[cd]||[];
+  if(!photos[idx])return;
+  localStorage.setItem('pendingPhoto_'+cd+'_'+idx,photos[idx]);
+  var el=document.querySelectorAll('.photo-thumb')[idx];
+  if(el)el.style.outline='2px solid #3498DB';
+  alert('照片已标记为待识别。\n在 Marvis 中发送"分析最新餐食照片"即可自动识别并填入。');
+}
+
+function fetchPendingPhotos(){
+  var results=[];
+  for(var i=0;i<localStorage.length;i++){
+    var key=localStorage.key(i);
+    if(key.indexOf('pendingPhoto_')===0){
+      results.push({key:key,data:localStorage.getItem(key)});
+    }
+  }
+  return results;
+}
 
 // ===== 快捷录入：添加餐食 =====
 function addMeal(){
@@ -1670,6 +1710,216 @@ function viewPhoto(idx){
   document.body.appendChild(overlay);
 }
 
+
+// ===== 食物数据库（每100g/100ml/个） =====
+var FOOD_DB={
+  '玉米鲜肉饺':{kk:249,pr:7.8,cb:26.9,ft:12.3,unit:'个',per:20},
+  '水饺':{kk:240,pr:8,cb:28,ft:12,unit:'个',per:20},
+  '饺子':{kk:240,pr:8,cb:28,ft:12,unit:'个',per:20},
+  '鸡胸肉':{kk:120,pr:23,cb:0,ft:2.5,unit:'g'},
+  '鸡胸':{kk:120,pr:23,cb:0,ft:2.5,unit:'g'},
+  '鸡腿肉':{kk:181,pr:18,cb:0,ft:11,unit:'g'},
+  '鸡腿':{kk:181,pr:18,cb:0,ft:11,unit:'g'},
+  '猪肉（瘦）':{kk:143,pr:20,cb:1.5,ft:6.2,unit:'g'},
+  '猪肉':{kk:395,pr:13,cb:2.4,ft:37,unit:'g'},
+  '瘦猪肉':{kk:143,pr:20,cb:1.5,ft:6.2,unit:'g'},
+  '牛肉（瘦）':{kk:113,pr:21,cb:1.3,ft:2.5,unit:'g'},
+  '牛肉':{kk:125,pr:20,cb:2,ft:4,unit:'g'},
+  '牛排':{kk:271,pr:25,cb:0,ft:19,unit:'g'},
+  '鸡蛋':{kk:144,pr:13,cb:1.5,ft:8.5,unit:'个',per:55},
+  '水煮蛋':{kk:144,pr:13,cb:1.5,ft:8.5,unit:'个',per:55},
+  '煎蛋':{kk:196,pr:13,cb:1,ft:15,unit:'个',per:55},
+  '蛋白粉':{kk:390,pr:80,cb:6,ft:5,unit:'勺',per:30},
+  '乳清蛋白':{kk:390,pr:80,cb:6,ft:5,unit:'勺',per:30},
+  '酪蛋白':{kk:370,pr:85,cb:3,ft:2,unit:'勺',per:30},
+  '香蕉':{kk:93,pr:1,cb:22,ft:0.3,unit:'根',per:120},
+  '米饭':{kk:116,pr:2.6,cb:26,ft:0.3,unit:'碗',per:150},
+  '白米饭':{kk:116,pr:2.6,cb:26,ft:0.3,unit:'碗',per:150},
+  '糙米饭':{kk:117,pr:2.7,cb:23,ft:0.8,unit:'碗',per:150},
+  '面包':{kk:265,pr:9,cb:49,ft:3.2,unit:'片',per:40},
+  '全麦面包':{kk:247,pr:13,cb:41,ft:3.4,unit:'片',per:40},
+  '牛奶':{kk:54,pr:3,cb:5,ft:3,unit:'ml'},
+  '全脂牛奶':{kk:64,pr:3.2,cb:4.7,ft:3.6,unit:'ml'},
+  '脱脂牛奶':{kk:35,pr:3.5,cb:5,ft:0.1,unit:'ml'},
+  '酸奶':{kk:63,pr:3.5,cb:10,ft:1.5,unit:'ml'},
+  '希腊酸奶':{kk:97,pr:10,cb:3.6,ft:5,unit:'ml'},
+  '苹果':{kk:53,pr:0.3,cb:13,ft:0.2,unit:'个',per:200},
+  '橙子':{kk:47,pr:0.8,cb:11,ft:0.1,unit:'个',per:200},
+  '西兰花':{kk:34,pr:2.8,cb:7,ft:0.4,unit:'g'},
+  '胡萝卜':{kk:39,pr:1,cb:9,ft:0.2,unit:'g'},
+  '豆腐':{kk:73,pr:8,cb:2.8,ft:3.7,unit:'g'},
+  '嫩豆腐':{kk:47,pr:4.8,cb:1.7,ft:2.5,unit:'g'},
+  '鱼（鲈鱼）':{kk:105,pr:18,cb:0,ft:3.4,unit:'g'},
+  '三文鱼':{kk:208,pr:20,cb:0,ft:13,unit:'g'},
+  '虾':{kk:93,pr:19,cb:0,ft:1.4,unit:'g'},
+  '虾仁':{kk:48,pr:11,cb:0,ft:0.7,unit:'g'},
+  '燕麦':{kk:376,pr:14,cb:66,ft:6.5,unit:'g'},
+  '燕麦片':{kk:376,pr:14,cb:66,ft:6.5,unit:'g'},
+  '坚果':{kk:607,pr:20,cb:16.5,ft:54,unit:'g'},
+  '花生':{kk:567,pr:25,cb:16,ft:49,unit:'g'},
+  '薯片':{kk:536,pr:6,cb:53,ft:33,unit:'g'},
+  '巧克力':{kk:546,pr:5,cb:59,ft:32,unit:'g'},
+  '黑巧克力':{kk:598,pr:7.8,cb:46,ft:43,unit:'g'},
+  '蛋糕':{kk:349,pr:5,cb:57,ft:12,unit:'g'},
+  '饼干':{kk:435,pr:6,cb:69,ft:13,unit:'g'},
+  '面条':{kk:110,pr:3.7,cb:22,ft:0.6,unit:'碗',per:200},
+  '包子':{kk:224,pr:8,cb:10,ft:14,unit:'个',per:80},
+  '馒头':{kk:223,pr:7,cb:44,ft:1.1,unit:'个',per:80},
+  '玉米':{kk:112,pr:4,cb:22.8,ft:1.2,unit:'根',per:200},
+  '红薯':{kk:86,pr:1.6,cb:20,ft:0.1,unit:'个',per:200},
+  '土豆':{kk:81,pr:2,cb:17,ft:0.1,unit:'g'},
+  '菠菜':{kk:23,pr:2.9,cb:3.6,ft:0.4,unit:'g'},
+  '番茄':{kk:20,pr:0.9,cb:3.5,ft:0.2,unit:'g'},
+  '黄瓜':{kk:16,pr:0.6,cb:2.5,ft:0.1,unit:'g'},
+  '葡萄':{kk:70,pr:0.5,cb:16,ft:0.2,unit:'g'},
+  '西瓜':{kk:32,pr:0.6,cb:7.6,ft:0.1,unit:'g'},
+  '芒果':{kk:65,pr:0.5,cb:16,ft:0.2,unit:'g'},
+  '蓝莓':{kk:57,pr:0.7,cb:14,ft:0.3,unit:'g'},
+  '火龙果':{kk:55,pr:1.1,cb:13,ft:0.4,unit:'个',per:350},
+  '黄桃':{kk:42,pr:0.5,cb:10,ft:0.1,unit:'g'},
+  '杏子':{kk:38,pr:0.9,cb:9,ft:0.1,unit:'g'},
+  '豇豆':{kk:30,pr:2.5,cb:5,ft:0.2,unit:'g'},
+  '橄榄油':{kk:884,pr:0,cb:0,ft:100,unit:'ml'},
+  '黄油':{kk:744,pr:0.5,cb:0,ft:82,unit:'g'},
+  '奶酪':{kk:350,pr:25,cb:2,ft:27,unit:'g'},
+  '牛油果':{kk:171,pr:2,cb:1.8,ft:15,unit:'个',per:150},
+  '酱油':{kk:53,pr:5.6,cb:5.1,ft:0,unit:'ml'},
+  '醋':{kk:20,pr:0.4,cb:4,ft:0,unit:'ml'},
+  '辣椒酱':{kk:66,pr:1.5,cb:12,ft:2,unit:'g'},
+  '南瓜':{kk:23,pr:0.7,cb:5.2,ft:0.1,unit:'g'},
+  '紫薯':{kk:106,pr:2.4,cb:24,ft:0.1,unit:'g'},
+  '蜂蜜':{kk:327,pr:0.3,cb:80,ft:0,unit:'g'},
+  '杏仁':{kk:578,pr:21,cb:20,ft:50,unit:'g'},
+  '核桃':{kk:654,pr:15,cb:14,ft:65,unit:'g'},
+  '腰果':{kk:553,pr:18,cb:30,ft:44,unit:'g'},
+  '酸奶（原味）':{kk:63,pr:3.5,cb:10,ft:1.5,unit:'ml'},
+};
+
+// ===== 关键词匹配最佳食物 =====
+function matchFood(name){
+  var best=null,bestLen=0;
+  var keys=Object.keys(FOOD_DB);
+  for(var i=0;i<keys.length;i++){
+    if(name.indexOf(keys[i])>=0 && keys[i].length>bestLen){
+      best=keys[i];bestLen=keys[i].length;
+    }
+  }
+  if(!best){
+    // 部分匹配
+    for(var i=0;i<keys.length;i++){
+      if(keys[i].indexOf(name)>=0 && keys[i].length>bestLen){
+        best=keys[i];bestLen=keys[i].length;
+      }
+    }
+  }
+  return best;
+}
+
+// ===== NL 模式切换 =====
+window.__nlMode=false;
+function toggleNLMode(){
+  window.__nlMode=!window.__nlMode;
+  rdd();
+}
+
+// ===== NL 解析 =====
+function parseNL(){
+  var text=document.getElementById('nl-textarea').value.trim();
+  if(!text){alert('请输入餐食描述');return;}
+  var lines=text.split(/[\n]+/);
+  var meals=[],unmatched=[];
+  // 格式: "食物名 数量单位" 或 "食物名 数量 单位"
+  var mealRe=/(.+?)[\s]*([\d.]+)\s*(个|克|g|勺|碗|根|片|ml|斤|两|块|杯|粒|颗)/i;
+  lines.forEach(function(line){
+    line=line.trim();
+    if(!line)return;
+    if(line.indexOf(':')>0)line=line.split(':').slice(1).join(':').trim();
+    if(line.indexOf('：')>0)line=line.split('：').slice(1).join('：').trim();
+    var parts=line.split(/[,，、;；]/);
+    parts.forEach(function(part){
+      part=part.trim();if(!part)return;
+      var m=part.match(mealRe);
+      if(!m){
+        unmatched.push(part);return;
+      }
+      var fName=m[1].trim(),qty=parseFloat(m[2]),unit=m[3].toLowerCase();
+      var matchKey=matchFood(fName);
+      var fd=matchKey?FOOD_DB[matchKey]:null;
+      if(!fd){
+        unmatched.push(part);return;
+      }
+      // 计算实际量
+      var grams;
+      if(unit==='g'||unit==='ml')grams=qty;
+      else if(fd.per)grams=qty*fd.per;
+      else if(unit==='个')grams=qty*100;
+      else if(unit==='勺')grams=qty*30;
+      else if(unit==='碗')grams=qty*200;
+      else if(unit==='根')grams=qty*150;
+      else if(unit==='片')grams=qty*40;
+      else grams=qty*100;
+      var scale=grams/100;
+      meals.push({
+        n:matchKey,g:Math.round(grams*10)/10,q:qty+' '+unit,tm:'',
+        kk:Math.round(fd.kk*scale*10)/10,
+        pr:Math.round(fd.pr*scale*10)/10,
+        cb:Math.round(fd.cb*scale*10)/10,
+        ft:Math.round(fd.ft*scale*10)/10
+      });
+    });
+  });
+  if(meals.length===0&&unmatched.length===0){
+    alert('未识别到有效餐食，请使用"食物名 数量单位"格式');
+    return;
+  }
+  showNLPreview(meals,unmatched);
+}
+
+// ===== NL 预览确认 =====
+function showNLPreview(meals,unmatched){
+  var now=new Date();var defaultTime=("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
+  var html='<div class="nl-preview-overlay" onclick="this.remove()"><div class="nl-preview" onclick="event.stopPropagation()">';
+  html+='<div class="nl-preview-title">解析预览 <button style="float:right;border:none;background:none;font-size:18px;cursor:pointer;color:#64748B" onclick="clearNLPreview()">×</button></div>';
+  if(meals.length>0){
+    html+='<table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:8px">';
+    html+='<thead><tr style="text-align:left;border-bottom:1px solid #E2E8F0"><th>食物</th><th>份量</th><th>热量</th><th>蛋白</th><th>碳水</th><th>脂肪</th><th>时间</th></tr></thead><tbody>';
+    meals.forEach(function(m,i){
+      html+='<tr style="border-bottom:1px solid #F0F0F0">';
+      html+='<td>'+m.n+'</td><td>'+m.q+'</td>';
+      html+='<td>'+m.kk+'</td><td>'+m.pr+'g</td><td>'+m.cb+'g</td><td>'+m.ft+'g</td>';
+      html+='<td><input type="time" value="'+defaultTime+'" id="nl-tm-'+i+'" style="width:72px;font-size:10px;border:1px solid #DEE2E6;border-radius:3px;padding:1px 3px"></td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+  }
+  if(unmatched.length>0){
+    html+='<div style="font-size:11px;color:#D97706;margin-bottom:8px">未识别：'+unmatched.join('、')+'</div>';
+  }
+  html+='<div style="display:flex;gap:6px;justify-content:flex-end">';
+  html+='<button style="padding:6px 14px;border:1px solid #DEE2E6;border-radius:4px;background:#fff;color:#64748B;cursor:pointer;font-size:11px" onclick="clearNLPreview()">取消</button>';
+  html+='<button style="padding:6px 14px;border:none;border-radius:4px;background:#27AE60;color:#fff;cursor:pointer;font-size:11px" onclick="confirmNL('+JSON.stringify(meals)+')">确认添加</button>';
+  html+='</div></div></div>';
+  // 移除旧预览
+  var old=document.querySelector('.nl-preview-overlay');if(old)old.remove();
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function clearNLPreview(){
+  var old=document.querySelector('.nl-preview-overlay');if(old)old.remove();
+}
+
+function confirmNL(meals){
+  var db=rd();
+  if(!db[cd]){db[cd]={workout:'休息',meals:[]};}
+  meals.forEach(function(m,i){
+    var tmEl=document.getElementById('nl-tm-'+i);
+    m.tm=tmEl?tmEl.value:'12:00';
+    db[cd].meals.push({n:m.n,g:m.g,q:m.q,tm:m.tm,kk:m.kk,pr:m.pr,cb:m.cb,ft:m.ft});
+  });
+  wd(db);
+  clearNLPreview();
+  rdd();
+}
 function delPhoto(idx){
   var mp=getMealPhotos();
   if(mp[cd]){mp[cd].splice(idx,1);setMealPhotos(mp);rdd();}
@@ -2149,6 +2399,61 @@ function rwk(){
   analysisHTML+='<div style="font-size:12px;font-weight:700;color:#2C3E50;margin-bottom:4px">暴食 / 食欲波动</div>';
   analysisHTML+='<div style="font-size:11px;color:#7F8C8D;line-height:1.6">'+bingeDesc+'</div>';
   analysisHTML+='</div>';
+
+  // === 模块5：AI 营养教练 ===
+  var bestNut='蛋白质',bestPct=0,worstNut2='',worstPct2=200;
+  [{n:'蛋白质',p:prPct},{n:'碳水',p:cbPct},{n:'脂肪',p:ftPct}].forEach(function(x){
+    if(x.p>bestPct){bestPct=x.p;bestNut=x.n;}
+    if(x.p<worstPct2){worstPct2=x.p;worstNut2=x.n;}
+  });
+  var trainingDays=dayData.filter(function(dd){return dd.wo&&dd.wo!=='休息'}).length;
+  var highlight='',warning='',action='';
+  // 亮点
+  if(bestPct>=95){
+    highlight=bestNut+'达标率 '+bestPct+'%，表现亮眼！继续保持这种节奏。';
+  }else if(trainingDays>=3){
+    highlight='本周训练 '+trainingDays+' 天，训练纪律保持得不错！';
+  }else if(wKcalDeficit>=300&&wKcalDeficit<=500){
+    highlight='本周热量缺口控制在理想区间（'+wKcalDeficit+' kcal），减脂节奏稳健！';
+  }else{
+    var bestTag=bestPct>=80?bestNut:'热量';
+    highlight='本周整体达标率良好，'+(bestPct>=80?bestNut+'达标 '+bestPct+'%':'继续努力')+'！';
+  }
+  // 预警
+  if(worstPct2<75){
+    warning=worstNut2+'达标率仅 '+worstPct2+'%，连续偏低可能影响恢复和训练表现。';
+  }else if(overCnt>=3){
+    warning='本周有 '+overCnt+' 天热量超标，建议反思超标原因（零食/聚餐/份量偏大）。';
+  }else if(ftPct>=110){
+    warning='脂肪摄入偏高（'+ftPct+'%），注意减少油炸和高脂调料。';
+  }else if(trainingDays<2&&dayData.length>=5){
+    warning='本周训练不足（'+trainingDays+' 天），肌肉刺激频率偏低。';
+  }else{
+    warning='本周各项指标基本在合理范围，继续保持监测即可。';
+  }
+  // 行动
+  var trTgt=getTarget(dayData[0]?dayData[0].date:cd,'胸');
+  if(worstNut2==='碳水'){
+    var newCb=Math.round(trTgt.c*1.12);
+    action='训练日碳水建议从 '+trTgt.c+'g 提到 '+newCb+'g，优先训练前后补充。';
+  }else if(worstNut2==='蛋白质'){
+    var newPr=Math.round(trTgt.p*1.1);
+    action='蛋白质建议从 '+trTgt.p+'g 提到 '+newPr+'g，均匀分配到 4-5 餐。';
+  }else if(worstNut2==='脂肪'){
+    var newFt=Math.round(trTgt.f*0.85);
+    action='脂肪建议从 '+trTgt.f+'g 降到 '+newFt+'g，替换为瘦蛋白和低GI碳水。';
+  }else if(wKcalDeficit<200){
+    action='热量缺口偏小（'+wKcalDeficit+' kcal），建议训练日增加 30min 有氧或减少零食。';
+  }else{
+    action='下周尝试碳水周期化：训练日 '+Math.round(trTgt.c*1.15)+'g，休息日 '+Math.round(trTgt.c*0.85)+'g。';
+  }
+  analysisHTML+='<div style="border-top:1px solid #F0F0F0;padding:10px;border-left:3px solid #27AE60;background:#fff">';
+  analysisHTML+='<div style="font-size:12px;font-weight:700;color:#2C3E50;margin-bottom:8px">AI 营养教练</div>';
+  analysisHTML+='<div style="font-size:11px;line-height:1.8">';
+  analysisHTML+='<div style="margin-bottom:4px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#27AE60;margin-right:4px;vertical-align:middle"></span><span style="color:#7F8C8D">本周亮点：</span><span style="color:#27AE60;font-weight:600">'+highlight+'</span></div>';
+  analysisHTML+='<div style="margin-bottom:4px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#D97706;margin-right:4px;vertical-align:middle"></span><span style="color:#7F8C8D">本周预警：</span><span style="color:#D97706;font-weight:600">'+warning+'</span></div>';
+  analysisHTML+='<div><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#3498DB;margin-right:4px;vertical-align:middle"></span><span style="color:#7F8C8D">下周行动：</span><span style="color:#3498DB;font-weight:600">'+action+'</span></div>';
+  analysisHTML+='</div></div>';
 
   analysisHTML+='</div>';
 
@@ -3113,6 +3418,15 @@ function verifyCalories(){
   localStorage.setItem("fix_0714_lunch_fix","1");
 })();
 (function(){
+  if(localStorage.getItem("fix_0714_chicken_fat"))return;
+  var db=rd();
+  if(!db["2026-07-14"])return;
+  db["2026-07-14"].meals=db["2026-07-14"].meals.filter(function(x){return x.n!=="优级香料烤全腿"||x.tm!=="10:50"});
+  db["2026-07-14"].meals.push({n:"优级香料烤全腿",g:225,q:"1只",tm:"10:50",kk:370,pr:28,cb:4,ft:27});
+  wd(db);
+  localStorage.setItem("fix_0714_chicken_fat","1");
+})();
+(function(){
   if(localStorage.getItem("fix_0714_snack")) return;
   var db=rd();
   if(!db["2026-07-14"]) db["2026-07-14"]={workout:false,meals:[]};
@@ -3549,13 +3863,75 @@ function verifyCalories(){
 // Firebase 同步：每 2 秒检查 localStorage 变化并推送
 var __lastSync='';
 window.__syncTimer=setInterval(function(){
+  if(!window.__dataReady)return;
   var cur=localStorage.getItem('ddb2');
-  if(cur&&cur!==__lastSync){
+  if(!cur||cur==='{}')return;
+  if(cur!==__lastSync){
     __lastSync=cur;
     if(window.__fb)window.__fb.set(window.__fb.ref(window.__fb.db,'ddb2'),JSON.parse(cur));
   }
 },2000);
 
+function checkBingeWarning(){
+  var db=rd();
+  var today=cd;
+  var todayDate=new Date(today);
+  var thisMonth=todayDate.getMonth()+1;
+  var thisDay=todayDate.getDate();
+
+  // 1. 检测往年同月同日暴食（超标>50%）
+  var bingeDates=[];
+  for(var k in db){
+    if(!db[k]||!db[k].total)continue;
+    var d=new Date(k);
+    var tgt=getTarget(k,db[k].workout||'休息');
+    if(tgt.k>0&&db[k].total.kk>tgt.k*1.5){
+      bingeDates.push(k);
+    }
+  }
+  var sameDateBinge=bingeDates.filter(function(d){
+    var dt=new Date(d);
+    return dt.getMonth()+1===thisMonth && dt.getDate()===thisDay && d!==today;
+  });
+  if(sameDateBinge.length>0){
+    var histDay=Math.round(db[sameDateBinge[0]].total.kk);
+    showBingeWarn('去年今日有过暴食记录（'+histDay+'kcal），今天注意控制哦');
+    return;
+  }
+
+  // 2. 检测连续2天超标>120%
+  var days=Object.keys(db).sort();
+  var overStreak=0,overDates=[];
+  for(var i=days.length-1;i>=0;i--){
+    var dd=days[i];if(dd>today)continue;
+    var ddata=db[dd];if(!ddata||!ddata.total)continue;
+    var tgt=getTarget(dd,ddata.workout||'休息');
+    if(tgt.k>0&&ddata.total.kk>tgt.k*1.2){
+      overStreak++;overDates.unshift(dd);
+      if(overStreak>=2){break;}
+    }else if(overStreak>0){
+      break;
+    }
+  }
+  if(overStreak>=2){
+    // Check that the streak includes today or yesterday
+    if(overDates[overDates.length-1]>=today||overDates[overDates.length-1]===new Date(todayDate-86400000).toISOString().slice(0,10)){
+      showBingeWarn('已连续'+overStreak+'天超出目标120%，建议今天控制在目标范围内');
+    }
+  }
+}
+
+function showBingeWarn(msg){
+  var existing=document.querySelector('.binge-warn');
+  if(existing)existing.remove();
+  var el=document.createElement('div');
+  el.className='binge-warn';
+  el.innerHTML='<span>⚠ '+msg+'</span><span class="binge-warn-close" onclick="this.parentElement.remove()">×</span>';
+  var vd=document.getElementById('vd');
+  if(vd)vd.insertBefore(el,vd.firstChild);
+}
+
+checkBingeWarning();
 rdd();
 verifyCalories();
 </script>
